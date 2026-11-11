@@ -70,11 +70,19 @@ class BatteryNetworkMonitor(private val context: Context) {
     }
 
     fun start() {
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        context.registerReceiver(batteryReceiver, filter)
-
-        val request = NetworkRequest.Builder().build()
         try {
+            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(batteryReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(batteryReceiver, filter)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            val request = NetworkRequest.Builder().build()
             connectivityManager.registerNetworkCallback(request, networkCallback)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -96,27 +104,40 @@ class BatteryNetworkMonitor(private val context: Context) {
     }
 
     private fun updateNetworkInfo() {
-        val activeNetwork = connectivityManager.activeNetwork
-        val caps = connectivityManager.getNetworkCapabilities(activeNetwork)
+        try {
+            val activeNetwork = connectivityManager.activeNetwork
+            val caps = connectivityManager.getNetworkCapabilities(activeNetwork)
 
-        if (caps == null) {
-            _networkStatus.value = NetworkStatus("Offline", false, "No Internet")
-            return
-        }
+            if (caps == null) {
+                _networkStatus.value = NetworkStatus("Offline", false, "No Internet")
+                return
+            }
 
-        when {
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
-                val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                val info = wifiManager?.connectionInfo
-                val ssid = info?.ssid?.replace("\"", "") ?: "Hotspot"
-                _networkStatus.value = NetworkStatus("Wi-Fi", true, ssid)
+            when {
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                    var ssid = "Connected"
+                    try {
+                        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                        val info = wifiManager?.connectionInfo
+                        val rawSsid = info?.ssid
+                        if (!rawSsid.isNullOrBlank() && rawSsid != "<unknown ssid>") {
+                            ssid = rawSsid.replace("\"", "")
+                        }
+                    } catch (e: Exception) {
+                        // Location permission not granted yet for SSID read
+                        ssid = "Connected"
+                    }
+                    _networkStatus.value = NetworkStatus("Wi-Fi", true, ssid)
+                }
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                    _networkStatus.value = NetworkStatus("SIM Data", true, "Mobile LTE/5G")
+                }
+                else -> {
+                    _networkStatus.value = NetworkStatus("Connected", true, "Online")
+                }
             }
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
-                _networkStatus.value = NetworkStatus("SIM Data", true, "Mobile LTE/5G")
-            }
-            else -> {
-                _networkStatus.value = NetworkStatus("Connected", true, "Online")
-            }
+        } catch (e: Exception) {
+            _networkStatus.value = NetworkStatus("Connected", true, "Online")
         }
     }
 }

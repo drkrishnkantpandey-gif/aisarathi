@@ -78,6 +78,16 @@ class WakeWordListener(
     }
 
     fun start() {
+        val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasAudio) {
+            Log.w("WakeWord", "RECORD_AUDIO permission not granted yet, skipping start")
+            return
+        }
+
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.e("WakeWord", "SpeechRecognizer not available on device")
             return

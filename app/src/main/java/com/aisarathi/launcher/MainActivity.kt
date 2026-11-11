@@ -50,18 +50,26 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Force landscape orientation automatically as soon as app opens
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        try {
+            // Force landscape orientation automatically as soon as app opens
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         // Keep screen awake for car dashboard
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // Immersive car display (hide navigation bars)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        insetsController.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        insetsController.hide(WindowInsetsCompat.Type.systemBars())
+        try {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController.hide(WindowInsetsCompat.Type.systemBars())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         prefs = PreferenceManager(this)
         batteryNetworkMonitor = BatteryNetworkMonitor(this)
