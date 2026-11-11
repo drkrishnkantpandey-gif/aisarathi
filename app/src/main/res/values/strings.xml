@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">AI Sarathi</string>
+    <string name="maps">Maps</string>
+    <string name="spotify">Spotify</string>
+    <string name="yt_music">YT Music</string>
+    <string name="youtube">YouTube</string>
+    <string name="phone">Phone</string>
+    <string name="whatsapp">WhatsApp</string>
+    <string name="all_apps">All Apps</string>
+    <string name="settings">Settings</string>
+</resources>
