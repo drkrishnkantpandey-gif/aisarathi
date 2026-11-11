@@ -70,7 +70,7 @@ object AppLauncherHelper {
         return try {
             val intent = Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH).apply {
                 putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/*")
-                putExtra(MediaStore.EXTRA_MEDIA_SEARCH_MODE, "all")
+                putExtra("android.intent.extra.media.SEARCH_MODE", "all")
                 putExtra(MediaStore.EXTRA_MEDIA_TITLE, query)
                 putExtra(android.app.SearchManager.QUERY, query)
                 setPackage("com.spotify.music")
