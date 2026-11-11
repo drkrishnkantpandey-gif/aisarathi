@@ -5,7 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aisarathi.launcher.live.MicState
@@ -63,7 +60,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -84,8 +81,8 @@ fun HomeScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .padding(vertical = 2.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = if (errorMessage != null) CarAccentRed.copy(alpha = 0.2f) else CarCardBg,
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
@@ -95,27 +92,27 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = if (errorMessage != null) Icons.Default.Warning else Icons.Default.GraphicEq,
                                 contentDescription = "Status",
                                 tint = if (errorMessage != null) CarAccentRed else CarPrimary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = errorMessage ?: liveTranscript,
-                                fontSize = 13.sp,
+                                fontSize = 11.sp,
                                 color = if (errorMessage != null) CarAccentRed else CarTextPrimary,
-                                maxLines = 2
+                                maxLines = 1
                             )
                         }
                     }
                 }
 
-                // 8 Large Action Buttons (2 Rows of 4 in Landscape)
+                // 8 Compact Action Buttons (2 Rows of 4 in Landscape)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -125,7 +122,7 @@ fun HomeScreen(
                     // Row 1
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CarActionButton(
                             icon = Icons.Default.Navigation,
@@ -160,7 +157,7 @@ fun HomeScreen(
                     // Row 2
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CarActionButton(
                             icon = Icons.Default.Call,
@@ -194,31 +191,31 @@ fun HomeScreen(
                 }
             }
 
-            // Big Central Car Hands-Free Mic Button
+            // Central Car Mic Button (Compact & Elegant)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = (-4).dp)
+                    .offset(y = (-2).dp)
             ) {
                 val isBusy = micState == MicState.LISTENING || micState == MicState.SPEAKING || micState == MicState.THINKING
                 val micBg = if (isBusy) {
-                    Brush.radialGradient(listOf(CarPrimary, Color(0xFF007A99)))
+                    Brush.radialGradient(listOf(CarAccentGreen, Color(0xFF007A33)))
                 } else {
-                    Brush.radialGradient(listOf(Color(0xFF2A3342), Color(0xFF181C24)))
+                    Brush.radialGradient(listOf(Color(0xFF252B36), Color(0xFF181C24)))
                 }
 
                 Surface(
                     onClick = onMicClick,
                     modifier = Modifier
-                        .size(68.dp)
+                        .size(54.dp)
                         .clip(CircleShape)
                         .border(
                             2.dp,
-                            if (isBusy) CarPrimary else CarCardBorder,
+                            if (isBusy) CarAccentGreen else CarCardBorder,
                             CircleShape
                         ),
                     shape = CircleShape,
-                    shadowElevation = 8.dp
+                    shadowElevation = 6.dp
                 ) {
                     Box(
                         modifier = Modifier
@@ -230,7 +227,7 @@ fun HomeScreen(
                             imageVector = if (micState == MicState.SPEAKING) Icons.Default.VolumeUp else Icons.Default.Mic,
                             contentDescription = "Sarathi Mic",
                             tint = if (isBusy) Color.Black else CarPrimary,
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }

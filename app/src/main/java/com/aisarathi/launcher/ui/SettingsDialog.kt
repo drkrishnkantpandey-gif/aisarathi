@@ -3,7 +3,6 @@ package com.aisarathi.launcher.ui
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,15 +52,15 @@ fun SettingsDialog(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            shape = RoundedCornerShape(20.dp),
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
             color = CarBg,
-            border = androidx.compose.foundation.BorderStroke(2.dp, CarCardBorder)
+            border = androidx.compose.foundation.BorderStroke(1.dp, CarCardBorder)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
+                    .padding(16.dp)
             ) {
                 // Header
                 Row(
@@ -72,14 +70,13 @@ fun SettingsDialog(
                 ) {
                     Text(
                         text = "Sarathi Settings",
-                        fontSize = 24.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = CarTextPrimary
                     )
 
                     IconButton(
                         onClick = {
-                            // Save and close
                             prefs.geminiApiKey = apiKey
                             prefs.paidApiKey = paidApiKey
                             prefs.isPaidKeyEnabled = isPaidEnabled
@@ -90,40 +87,46 @@ fun SettingsDialog(
                             onDismiss()
                         },
                         modifier = Modifier
-                            .size(44.dp)
-                            .background(CarCardBg, RoundedCornerShape(12.dp))
+                            .size(36.dp)
+                            .background(CarCardBg, RoundedCornerShape(10.dp))
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Save and Close",
-                            tint = CarTextPrimary
+                            tint = CarTextPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Scrollable content
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 1. Gemini Free API Key Section
+                    // 1. Gemini Live API Key (Optional)
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "Gemini API Key (Free Tier from Google AI Studio)",
-                                fontSize = 16.sp,
+                                text = "Gemini Live API Key (Optional for Real-time Streaming)",
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CarPrimary
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Leave blank to use Gemini App (Pro subscription) or offline commands",
+                                fontSize = 10.sp,
+                                color = CarTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -132,7 +135,7 @@ fun SettingsDialog(
                                 OutlinedTextField(
                                     value = apiKey,
                                     onValueChange = { apiKey = it },
-                                    label = { Text("Paste Free Gemini Key") },
+                                    label = { Text("Paste Gemini Key (Optional)", fontSize = 11.sp) },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -149,11 +152,11 @@ fun SettingsDialog(
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = CarPrimary),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)
                                 ) {
-                                    Icon(Icons.Default.ContentPaste, contentDescription = "Paste")
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Paste")
+                                    Icon(Icons.Default.ContentPaste, contentDescription = "Paste", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Paste", fontSize = 11.sp)
                                 }
                             }
                         }
@@ -162,27 +165,27 @@ fun SettingsDialog(
                     // 2. Default Music App
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Text(
                                 text = "Default Music Player",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CarPrimary
                             )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 FilterChip(
                                     selected = defaultMusic == "spotify",
                                     onClick = { defaultMusic = "spotify" },
-                                    label = { Text("Spotify (Default)") }
+                                    label = { Text("Spotify (Default)", fontSize = 11.sp) }
                                 )
                                 FilterChip(
                                     selected = defaultMusic == "ytmusic",
                                     onClick = { defaultMusic = "ytmusic" },
-                                    label = { Text("YouTube Music") }
+                                    label = { Text("YouTube Music", fontSize = 11.sp) }
                                 )
                             }
                         }
@@ -191,20 +194,20 @@ fun SettingsDialog(
                     // 3. Saved Places
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Saved Places ('Take me Home' / 'Office')",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CarPrimary
                             )
                             OutlinedTextField(
                                 value = homeAddress,
                                 onValueChange = { homeAddress = it },
-                                label = { Text("Home Address or Landmark") },
+                                label = { Text("Home Address or Landmark", fontSize = 11.sp) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -215,7 +218,7 @@ fun SettingsDialog(
                             OutlinedTextField(
                                 value = officeAddress,
                                 onValueChange = { officeAddress = it },
-                                label = { Text("Office Address or Landmark") },
+                                label = { Text("Office Address or Landmark", fontSize = 11.sp) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -229,31 +232,31 @@ fun SettingsDialog(
                     // 4. Voice Style & Today's Usage
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Speaking Style",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CarPrimary
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf("Friendly", "Calm", "Energetic").forEach { style ->
                                     FilterChip(
                                         selected = voiceStyle == style,
                                         onClick = { voiceStyle = style },
-                                        label = { Text(style) }
+                                        label = { Text(style, fontSize = 11.sp) }
                                     )
                                 }
                             }
 
-                            Divider(color = CarCardBorder, modifier = Modifier.padding(vertical = 8.dp))
+                            Divider(color = CarCardBorder, modifier = Modifier.padding(vertical = 4.dp))
 
                             Text(
                                 text = "Today's Live Audio Usage: ${prefs.getDailyAudioMinutes()} minutes",
-                                fontSize = 14.sp,
+                                fontSize = 11.sp,
                                 color = CarAccentGreen,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -263,47 +266,48 @@ fun SettingsDialog(
                     // 5. Media Playback Permission
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Music Detection Permission",
-                                    fontSize = 15.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = CarTextPrimary
                                 )
                                 Text(
                                     text = if (isNotificationGranted) "Enabled (can verify if songs play)" else "Needed to verify if songs start playing",
-                                    fontSize = 12.sp,
+                                    fontSize = 10.sp,
                                     color = if (isNotificationGranted) CarAccentGreen else CarAccentAmber
                                 )
                             }
                             if (!isNotificationGranted) {
                                 Button(
                                     onClick = onOpenNotificationSettings,
-                                    colors = ButtonDefaults.buttonColors(containerColor = CarPrimary)
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarPrimary),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
-                                    Text("Grant")
+                                    Text("Grant", fontSize = 11.sp)
                                 }
                             }
                         }
                     }
 
-                    // 6. Advanced Section (Paid Key Fallback - OFF by default)
+                    // 6. Advanced Section (Paid Key Fallback)
                     Card(
                         colors = CardDefaults.cardColors(containerColor = CarCardBg.copy(alpha = 0.6f)),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -312,11 +316,11 @@ fun SettingsDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Security, contentDescription = "Advanced", tint = CarAccentAmber)
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.Security, contentDescription = "Advanced", tint = CarAccentAmber, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Advanced (Optional Paid Key Fallback)",
-                                        fontSize = 15.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = CarTextPrimary
                                     )
@@ -324,12 +328,12 @@ fun SettingsDialog(
                                 Text(
                                     text = if (showAdvanced) "Hide" else "Show",
                                     color = CarPrimary,
-                                    fontSize = 13.sp
+                                    fontSize = 11.sp
                                 )
                             }
 
                             if (showAdvanced) {
-                                Spacer(modifier = Modifier.height(14.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -337,7 +341,7 @@ fun SettingsDialog(
                                 ) {
                                     Text(
                                         text = "Enable Paid API Key Backup",
-                                        fontSize = 14.sp,
+                                        fontSize = 11.sp,
                                         color = CarTextPrimary
                                     )
                                     Switch(
@@ -347,11 +351,11 @@ fun SettingsDialog(
                                 }
 
                                 if (isPaidEnabled) {
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     OutlinedTextField(
                                         value = paidApiKey,
                                         onValueChange = { paidApiKey = it },
-                                        label = { Text("Optional Paid Gemini API Key") },
+                                        label = { Text("Optional Paid Gemini API Key", fontSize = 11.sp) },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
                                         colors = OutlinedTextFieldDefaults.colors(

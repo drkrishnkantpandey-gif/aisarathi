@@ -39,6 +39,7 @@ class GeminiLiveManager(
     private val prefs: PreferenceManager,
     private val tts: SystemTtsManager,
     private val mediaController: MediaControllerHelper,
+    private val onNoApiKeyFallback: () -> Unit,
     private val onModeChanged: (ConversationMode) -> Unit
 ) {
     companion object {
@@ -81,8 +82,8 @@ class GeminiLiveManager(
     fun startSession() {
         val apiKey = prefs.activeApiKey
         if (apiKey.isBlank()) {
-            _errorMessage.value = "Please enter Gemini API Key in Settings"
-            tts.speak("Please enter your Gemini API key in Settings")
+            // Seamlessly fall back to Basic Voice Mode or Gemini App without showing error banner
+            onNoApiKeyFallback()
             return
         }
 

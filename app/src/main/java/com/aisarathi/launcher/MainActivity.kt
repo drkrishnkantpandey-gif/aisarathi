@@ -28,6 +28,7 @@ import com.aisarathi.launcher.ui.SettingsDialog
 import com.aisarathi.launcher.utils.AppLauncherHelper
 import com.aisarathi.launcher.utils.BatteryNetworkMonitor
 import com.aisarathi.launcher.utils.PreferenceManager
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
 
@@ -38,13 +39,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var geminiLiveManager: GeminiLiveManager
     private lateinit var wakeWordListener: WakeWordListener
 
+    private val localMicState = MutableStateFlow(MicState.IDLE)
+    private val localTranscript = MutableStateFlow("")
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        // Start wake word listener once audio permission is granted
-        if (permissions[Manifest.permission.RECORD_AUDIO] == true) {
-            wakeWordListener.start()
-        }
+    ) { _ ->
+        // Permissions granted
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,10 +77,20 @@ class MainActivity : ComponentActivity() {
         tts = SystemTtsManager(this)
 
         mediaController = MediaControllerHelper(this, lifecycleScope) { sourceApp, targetApp, query ->
-            // Song failed or not started verification prompt
             val question = "$query was not found on $sourceApp. Should I search it in $targetApp?"
             tts.speak(question)
         }
+
+        wakeWordListener = WakeWordListener(
+            context = this,
+            coroutineScope = lifecycleScope,
+            onCommandRecognized = { command ->
+                handleVoiceCommand(command)
+            },
+            onListeningStateChanged = { isListening ->
+                localMicState.value = if (isListening) MicState.LISTENING else MicState.IDLE
+            }
+        )
 
         geminiLiveManager = GeminiLiveManager(
             context = this,
@@ -87,25 +98,29 @@ class MainActivity : ComponentActivity() {
             prefs = prefs,
             tts = tts,
             mediaController = mediaController,
+            onNoApiKeyFallback = {
+                // Seamlessly listen via device speech recognizer without demanding API key
+                localMicState.value = MicState.LISTENING
+                wakeWordListener.startSingleShot()
+            },
             onModeChanged = { newMode ->
-                // Mode changed via voice command
+                prefs.conversationMode = newMode
             }
         )
-
-        wakeWordListener = WakeWordListener(this, lifecycleScope) {
-            // Wake word "Sarathi" detected
-            tts.speak("Haanji, boliye") {
-                geminiLiveManager.startSession()
-            }
-        }
 
         batteryNetworkMonitor.start()
         requestCarPermissions()
 
         setContent {
             AISarathiTheme {
-                val micState by geminiLiveManager.micState.collectAsState()
-                val liveTranscript by geminiLiveManager.liveTranscript.collectAsState()
+                val liveMicState by geminiLiveManager.micState.collectAsState()
+                val localState by localMicState.collectAsState()
+                val currentMicState = if (liveMicState != MicState.IDLE) liveMicState else localState
+
+                val liveTranscriptText by geminiLiveManager.liveTranscript.collectAsState()
+                val localTranscriptText by localTranscript.collectAsState()
+                val transcript = if (liveTranscriptText.isNotBlank()) liveTranscriptText else localTranscriptText
+
                 val errorMessage by geminiLiveManager.errorMessage.collectAsState()
                 val batteryStatus by batteryNetworkMonitor.batteryStatus.collectAsState()
                 val networkStatus by batteryNetworkMonitor.networkStatus.collectAsState()
@@ -116,18 +131,25 @@ class MainActivity : ComponentActivity() {
                 var allAppsList by remember { mutableStateOf<List<AppItem>>(emptyList()) }
 
                 HomeScreen(
-                    micState = micState,
+                    micState = currentMicState,
                     conversationMode = currentMode,
                     batteryStatus = batteryStatus,
                     networkStatus = networkStatus,
-                    liveTranscript = liveTranscript,
+                    liveTranscript = transcript,
                     errorMessage = errorMessage,
                     onMicClick = {
-                        if (micState == MicState.IDLE) {
-                            geminiLiveManager.startSession()
-                        } else {
+                        if (currentMicState != MicState.IDLE) {
                             geminiLiveManager.stopSession()
-                            wakeWordListener.start()
+                            wakeWordListener.stop()
+                            localMicState.value = MicState.IDLE
+                        } else {
+                            if (prefs.activeApiKey.isNotBlank()) {
+                                geminiLiveManager.startSession()
+                            } else {
+                                localTranscript.value = "Listening..."
+                                localMicState.value = MicState.LISTENING
+                                wakeWordListener.startSingleShot()
+                            }
                         }
                     },
                     onModeClick = {
@@ -200,6 +222,108 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun handleVoiceCommand(command: String) {
+        localTranscript.value = command
+        localMicState.value = MicState.IDLE
+        val lower = command.lowercase().trim()
+
+        when {
+            // Mode changes
+            lower.contains("talk mode") || lower.contains("baat karte hain") || lower.contains("let's talk") -> {
+                prefs.conversationMode = ConversationMode.TALK
+                tts.speak("Switched to Talk mode. Opening Gemini.") {
+                    AppLauncherHelper.openGeminiApp(this@MainActivity)
+                }
+            }
+            lower.contains("casual") || lower.contains("chat") || lower.contains("gup-shup") || lower.contains("gupshup") || lower.contains("gappe") -> {
+                prefs.conversationMode = ConversationMode.CASUAL_CHAT
+                tts.speak("Switched to Casual Chat mode. Opening Gemini.") {
+                    AppLauncherHelper.openGeminiApp(this@MainActivity)
+                }
+            }
+            lower.contains("command mode") -> {
+                prefs.conversationMode = ConversationMode.COMMAND
+                tts.speak("Command mode active.")
+            }
+
+            // General chat or questions -> Open Gemini official app (uses Google AI Pro subscription)
+            lower.contains("gemini") || lower.startsWith("what") || lower.startsWith("how") ||
+                    lower.startsWith("why") || lower.startsWith("tell me") || lower.startsWith("kya") ||
+                    lower.startsWith("kaise") || lower.startsWith("batao") -> {
+                tts.speak("Opening Gemini") {
+                    AppLauncherHelper.openGeminiApp(this@MainActivity)
+                }
+            }
+
+            // Navigation
+            lower.contains("navigate") || lower.contains("take me to") || lower.contains("direction") ||
+                    lower.contains("rasta") || lower.contains("chalo") || lower.contains("home") || lower.contains("office") -> {
+                val dest = when {
+                    lower.contains("home") -> prefs.homeAddress.ifBlank { "Home" }
+                    lower.contains("office") || lower.contains("work") -> prefs.officeAddress.ifBlank { "Office" }
+                    else -> lower.replace("navigate to", "")
+                        .replace("take me to", "")
+                        .replace("directions to", "")
+                        .replace("chalo", "")
+                        .replace("rasta", "").trim()
+                }
+                tts.speak("Navigating to $dest") {
+                    AppLauncherHelper.openNavigation(this@MainActivity, dest)
+                }
+            }
+
+            // Nearby Search
+            lower.contains("nearby") || lower.contains("petrol") || lower.contains("hotel") ||
+                    lower.contains("parking") || lower.contains("restaurant") || lower.contains("food") -> {
+                tts.speak("Searching nearby") {
+                    AppLauncherHelper.searchNearby(this@MainActivity, lower)
+                }
+            }
+
+            // Music
+            lower.contains("play") || lower.contains("gana") || lower.contains("song") || lower.contains("music") -> {
+                val query = lower.replace("play", "")
+                    .replace("on spotify", "")
+                    .replace("on youtube music", "")
+                    .replace("on yt music", "")
+                    .replace("gana", "")
+                    .replace("song", "").trim()
+
+                val service = if (lower.contains("youtube") || lower.contains("yt")) "ytmusic" else prefs.defaultMusicApp
+                tts.speak("Playing $query") {
+                    mediaController.playMusicWithVerification(service, query)
+                }
+            }
+
+            // Phone call
+            lower.contains("call") || lower.contains("dial") || lower.contains("phone lagao") -> {
+                val contact = lower.replace("call", "").replace("dial", "").replace("phone lagao", "").trim()
+                tts.speak("Calling $contact") {
+                    AppLauncherHelper.makeCall(this@MainActivity, contact)
+                }
+            }
+
+            // Open Apps
+            lower.contains("open") -> {
+                when {
+                    lower.contains("spotify") -> AppLauncherHelper.openApp(this@MainActivity, "com.spotify.music")
+                    lower.contains("maps") -> AppLauncherHelper.openApp(this@MainActivity, "com.google.android.apps.maps")
+                    lower.contains("youtube") -> AppLauncherHelper.openYouTube(this@MainActivity)
+                    lower.contains("whatsapp") -> AppLauncherHelper.openApp(this@MainActivity, "com.whatsapp")
+                    lower.contains("gemini") -> AppLauncherHelper.openGeminiApp(this@MainActivity)
+                    else -> tts.speak("Opening app")
+                }
+            }
+
+            else -> {
+                // If query is not recognized, offer Gemini App
+                tts.speak("Opening Gemini") {
+                    AppLauncherHelper.openGeminiApp(this@MainActivity)
+                }
+            }
+        }
+    }
+
     private fun requestCarPermissions() {
         val permissions = mutableListOf(
             Manifest.permission.RECORD_AUDIO,
@@ -216,9 +340,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (geminiLiveManager.micState.value == MicState.IDLE) {
-            wakeWordListener.start()
-        }
     }
 
     override fun onPause() {

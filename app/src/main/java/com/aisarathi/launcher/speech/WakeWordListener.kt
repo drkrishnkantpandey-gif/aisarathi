@@ -12,12 +12,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class WakeWordListener(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
-    private val onWakeWordDetected: () -> Unit
+    private val onCommandRecognized: (String) -> Unit,
+    private val onListeningStateChanged: (Boolean) -> Unit
 ) {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
@@ -35,7 +35,11 @@ class WakeWordListener(
     }
 
     private val listener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) {}
+        override fun onReadyForSpeech(params: Bundle?) {
+            isListening = true
+            onListeningStateChanged(true)
+        }
+
         override fun onBeginningOfSpeech() {}
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
@@ -43,48 +47,41 @@ class WakeWordListener(
 
         override fun onError(error: Int) {
             isListening = false
+            onListeningStateChanged(false)
+
+            // Do NOT aggressively restart in a fast loop (prevents mic on/off flickering on MIUI)
             if (shouldKeepListening) {
-                scheduleRestart(500)
+                scheduleRestart(2500)
             }
         }
 
         override fun onResults(results: Bundle?) {
             isListening = false
-            handleMatches(results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION))
+            onListeningStateChanged(false)
+
+            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            val recognizedText = matches?.firstOrNull() ?: ""
+            if (recognizedText.isNotBlank()) {
+                onCommandRecognized(recognizedText)
+            }
+
             if (shouldKeepListening) {
-                scheduleRestart(200)
+                scheduleRestart(1500)
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) {
-            handleMatches(partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION))
-        }
-
+        override fun onPartialResults(partialResults: Bundle?) {}
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
-    private fun handleMatches(matches: List<String>?) {
-        matches ?: return
-        for (text in matches) {
-            val lower = text.lowercase().trim()
-            if (lower.contains("sarathi") || lower.contains("saarthi") || lower.contains("sarthi") ||
-                lower.contains("सारथी") || lower.contains("sarathy")
-            ) {
-                stop()
-                onWakeWordDetected()
-                break
-            }
-        }
-    }
-
-    fun start() {
+    fun startContinuous() {
         val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(
             context,
             android.Manifest.permission.RECORD_AUDIO
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (!hasAudio) {
-            Log.w("WakeWord", "RECORD_AUDIO permission not granted yet, skipping start")
+            Log.w("WakeWord", "RECORD_AUDIO permission not granted yet")
             return
         }
 
@@ -93,6 +90,19 @@ class WakeWordListener(
             return
         }
         shouldKeepListening = true
+        initAndListen()
+    }
+
+    fun startSingleShot() {
+        val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasAudio) return
+
+        shouldKeepListening = false
+        stop()
         initAndListen()
     }
 
@@ -107,12 +117,11 @@ class WakeWordListener(
             }
             speechRecognizer?.startListening(recognizerIntent)
             isListening = true
+            onListeningStateChanged(true)
         } catch (e: Exception) {
             e.printStackTrace()
             isListening = false
-            if (shouldKeepListening) {
-                scheduleRestart(1000)
-            }
+            onListeningStateChanged(false)
         }
     }
 
@@ -139,5 +148,8 @@ class WakeWordListener(
         }
         speechRecognizer = null
         isListening = false
+        onListeningStateChanged(false)
     }
+
+    fun isCurrentlyListening(): Boolean = isListening
 }
